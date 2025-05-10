@@ -890,7 +890,16 @@ just apply the previous results which show addition
 is associative and commutative.
 
 ```agda
--- Your code goes here
++-swap : ∀(m n p : ℕ) → m + (n + p) ≡ n + (m + p)
++-swap m n p = begin
+                 m + (n + p)
+                 ≡⟨ sym (+-assoc m n p) ⟩
+                 (m + n) + p
+                 ≡⟨ cong (_+ p) (+-comm m n) ⟩
+                 (n + m) + p
+                 ≡⟨ +-assoc n m p ⟩
+                 n + (m + p)
+                 ∎
 ```
 
 
@@ -903,7 +912,12 @@ Show multiplication distributes over addition, that is,
 for all naturals `m`, `n`, and `p`.
 
 ```agda
--- Your code goes here
+*-distrib-+ : ∀ (m n p : ℕ) → (m + n) * p ≡ m * p + n * p
+*-distrib-+ zero n p = refl
+*-distrib-+ (suc m) n p rewrite (*-distrib-+ m n p) =
+                        begin p + (m * p + n * p) ≡⟨ sym (+-assoc p (m * p) (n * p)) ⟩
+                        (p + m * p) + n * p ≡⟨⟩
+                        refl
 ```
 
 
@@ -916,7 +930,9 @@ Show multiplication is associative, that is,
 for all naturals `m`, `n`, and `p`.
 
 ```agda
--- Your code goes here
+*-assoc : ∀ (m n p : ℕ) → (m * n) * p ≡ m * (n * p)
+*-assoc zero n p = refl
+*-assoc (suc m) n p rewrite (*-distrib-+ n (m * n) p)  =  cong (_+_ (n * p)) (*-assoc m n p)
 ```
 
 
@@ -930,7 +946,23 @@ for all naturals `m` and `n`.  As with commutativity of addition,
 you will need to formulate and prove suitable lemmas.
 
 ```agda
--- Your code goes here
+*-lemma1 : ∀ (m : ℕ) → m * zero ≡ zero
+*-lemma1 zero = refl
+*-lemma1 (suc m) = *-lemma1 m
+
+*-lemma2 : ∀ (m n : ℕ) → m * (suc n) ≡ m + m * n
+*-lemma2 zero n = refl
+*-lemma2 (suc m) n rewrite *-lemma2 m n = 
+                           begin
+                             suc (n + (m + m * n)) ≡⟨ cong suc (sym (+-assoc n m (m * n))) ⟩
+                             suc ((n + m) + m * n) ≡⟨ cong suc (cong (_+ (m * n)) (+-comm n m)) ⟩
+                             suc ((m + n) + m * n) ≡⟨ cong suc (+-assoc m n (m * n)) ⟩
+                             suc (m + (n + m * n))
+                           ∎
+
+*-comm : ∀ (m n : ℕ) → m * n ≡ n * m
+*-comm zero n = sym (*-lemma1 n)
+*-comm (suc m) n rewrite *-comm m n = sym (*-lemma2 n m)
 ```
 
 
@@ -943,7 +975,9 @@ Show
 for all naturals `n`. Did your proof require induction?
 
 ```agda
--- Your code goes here
+zeromonus : ∀ (n : ℕ) → zero ∸ n ≡ zero
+zeromonus zero = refl
+zeromonus (suc n) = refl
 ```
 
 
@@ -956,7 +990,12 @@ Show that monus associates with addition, that is,
 for all naturals `m`, `n`, and `p`.
 
 ```agda
--- Your code goes here
+∸-+-assoc : ∀ (m n p : ℕ) → m ∸ n ∸ p ≡ m ∸ (n + p)
+∸-+-assoc zero zero p = refl
+∸-+-assoc zero (suc n) zero = refl
+∸-+-assoc zero (suc n) (suc p) = refl
+∸-+-assoc (suc m) zero p = refl
+∸-+-assoc (suc m) (suc n) p = ∸-+-assoc m n p
 ```
 
 
@@ -970,10 +1009,37 @@ Show the following three laws
 
 for all `m`, `n`, and `p`.
 
-```
--- Your code goes here
-```
+```agda
+^-distribˡ-+-* : ∀ (m n p : ℕ) → m ^ (n + p) ≡ (m ^ n) * (m ^ p)
+^-distribˡ-+-* m zero p rewrite +-identityʳ (m ^ p) = refl
+^-distribˡ-+-* m (suc n) p rewrite ^-distribˡ-+-* m n p = sym (*-assoc m (m ^ n) (m ^ p))
 
+^-distribʳ-* : ∀ (m n p : ℕ) → (m * n) ^ p ≡ (m ^ p) * (n ^ p)
+^-distribʳ-* m n zero = refl
+^-distribʳ-* m n (suc p) rewrite ^-distribʳ-* m n p =
+                         begin
+                           m * n * (m ^ p * n ^ p) ≡⟨ *-assoc m n (m ^ p * n ^ p) ⟩
+                           m * (n * (m ^ p * n ^ p)) ≡⟨ cong (_*_ m) (*-comm n (m ^ p * n ^ p)) ⟩
+                           m * ((m ^ p * n ^ p) * n) ≡⟨ cong (_*_ m) (*-assoc (m ^ p) (n ^ p) n) ⟩ 
+                           m * (m ^ p * (n ^ p * n)) ≡⟨ sym (*-assoc m (m ^ p) (n ^ p * n)) ⟩
+                           m * m ^ p * (n ^ p * n) ≡⟨ cong (_*_ (m * m ^ p)) (*-comm (n ^ p) n) ⟩
+                           m * m ^ p * (n * n ^ p)
+                         ∎
+
+*-unitˡ : ∀ (n : ℕ) → n ≡ 1 * n
+*-unitˡ n = sym (+-identityʳ n)
+
+^-*-assoc : ∀ (m n p : ℕ) → (m ^ n) ^ p ≡ m ^ (n * p)
+^-*-assoc m n zero rewrite *-lemma1 n = refl
+^-*-assoc m n (suc p) rewrite ^-*-assoc m n p = 
+                      begin
+                      m ^ n * m ^ (n * p) ≡⟨ sym (^-distribˡ-+-* m n (n * p)) ⟩
+                      m ^ (n + n * p) ≡⟨ cong (_^_ m) (cong (_+_ n) (*-comm n p)) ⟩
+                      m ^ (n + p * n) ≡⟨ cong (_^_ m) (cong (_+ (p * n)) (*-unitˡ n)) ⟩
+                      m ^ (1 * n + p * n) ≡⟨ cong (_^_ m) (sym (*-distrib-+ 1 p n)) ⟩
+                      m ^ ((1 + p) * n) ≡⟨ cong (_^_ m) (*-comm (1 + p) n) ⟩
+                      m ^ (n * (1 + p)) ∎
+```
 
 #### Exercise `Bin-laws` (stretch) {#Bin-laws}
 
@@ -996,7 +1062,35 @@ over bitstrings:
 For each law: if it holds, prove; if not, give a counterexample.
 
 ```agda
--- Your code goes here
+data Bin : Set where
+  ⟨⟩ : Bin
+  _O : Bin → Bin
+  _I : Bin → Bin
+
+inc : Bin → Bin
+inc ⟨⟩ = ⟨⟩ I
+inc (b O) = b I
+inc (b I) = (inc b) O
+
+to : ℕ → Bin
+to 0 = ⟨⟩ O
+to (suc n) = inc (to n)
+
+from : Bin → ℕ
+from ⟨⟩ = 0
+from (b O) = 2 * (from b)
+from (b I) = 1 + (2 * (from b))
+
+rule1 : ∀ (b : Bin) → from (inc b) ≡ suc (from b)
+rule1 ⟨⟩ = refl
+rule1 (b O) = refl
+rule1 (b I) rewrite rule1 b =  cong suc (+-suc (from b) (from b + 0))
+
+-- rule 2 fails: consider the case of a binary number with a leading zero; "to" doesn't generate leading numbers, so they won't be equal
+
+rule3 : ∀ (n : ℕ) → from (to n) ≡ n
+rule3 zero = refl
+rule3 (suc n) rewrite rule1 (to n) = cong suc (rule3 n)
 ```
 
 
