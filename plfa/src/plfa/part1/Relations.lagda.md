@@ -243,13 +243,16 @@ partial order but not a total order.
 Give an example of a preorder that is not a partial order.
 
 ```agda
--- Your code goes here
+data _ⅇ_ : ℕ → ℕ → Set where
+  nⅇm : ∀ {m n : ℕ} → m ⅇ n
 ```
 
 Give an example of a partial order that is not a total order.
 
 ```agda
--- Your code goes here
+data _∼_ : ℕ → ℕ → Set where
+   z∼z : zero ∼ zero
+   s∼s : ∀ {m n : ℕ} → n ∼ m → (suc n) ∼ (suc m)
 ```
 
 ## Reflexivity
@@ -552,7 +555,13 @@ transitivity proves `m + p ≤ n + q`, as was to be shown.
 Show that multiplication is monotonic with regard to inequality.
 
 ```agda
--- Your code goes here
+*-mono-≤ʳ : ∀ (n p q : ℕ) → p ≤ q → n * p ≤ n * q
+*-mono-≤ʳ zero p q _ = z≤n
+*-mono-≤ʳ (suc n) p q p≤q = +-mono-≤ p q (n * p) (n * q) p≤q (*-mono-≤ʳ n p q p≤q)
+
+*-mono-≤ˡ : ∀ (n m p : ℕ) → n ≤ m → n * p ≤ m * p
+*-mono-≤ˡ n m zero n≤m rewrite (*-comm n zero) | (*-comm m zero) = z≤n
+*-mono-≤ˡ n m (suc p) n≤m rewrite (*-comm n (suc p)) | (*-comm m (suc p)) =  +-mono-≤ n m (p * n) (p * m) n≤m (*-mono-≤ʳ p n m n≤m)
 ```
 
 
@@ -600,7 +609,9 @@ Show that strict inequality is transitive. Use a direct proof. (A later
 exercise exploits the relation between < and ≤.)
 
 ```agda
--- Your code goes here
+<-trans : ∀ (r s t : ℕ) → r < s → s < t → r < t
+<-trans zero (suc s) (suc t) r<s s<t = z<s
+<-trans (suc r) (suc s) (suc t) (s<s r<s) (s<s s<t) = s<s (<-trans r s t r<s s<t)
 ```
 
 #### Exercise `trichotomy` (practice) {#trichotomy}
@@ -618,7 +629,19 @@ similar to that used for totality.
 [negation](/Negation/).)
 
 ```agda
--- Your code goes here
+data Tri (m n : ℕ) : Set where
+  lt : m < n → Tri m n
+  gt : n < m → Tri m n
+  eq : m ≡ n → Tri m n
+
+<-trichotomy : ∀ (n m : ℕ) → Tri n m
+<-trichotomy zero zero = eq refl
+<-trichotomy zero (suc m) = lt z<s
+<-trichotomy (suc n) zero = gt z<s
+<-trichotomy (suc n) (suc m) with <-trichotomy n m
+...                              | lt m<n = lt (s<s m<n)
+...                              | gt n<m = gt (s<s n<m)
+...                              | eq m≡n = eq (cong suc m≡n)
 ```
 
 #### Exercise `+-mono-<` (practice) {#plus-mono-less}
