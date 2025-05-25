@@ -561,7 +561,11 @@ Show that multiplication is monotonic with regard to inequality.
 
 *-mono-≤ˡ : ∀ (n m p : ℕ) → n ≤ m → n * p ≤ m * p
 *-mono-≤ˡ n m zero n≤m rewrite (*-comm n zero) | (*-comm m zero) = z≤n
-*-mono-≤ˡ n m (suc p) n≤m rewrite (*-comm n (suc p)) | (*-comm m (suc p)) =  +-mono-≤ n m (p * n) (p * m) n≤m (*-mono-≤ʳ p n m n≤m)
+*-mono-≤ˡ n m (suc p) n≤m rewrite (*-comm n (suc p)) | (*-comm m (suc p)) =
+                          +-mono-≤ n m (p * n) (p * m) n≤m (*-mono-≤ʳ p n m n≤m)
+
+*-mono-≤ : ∀ (m n p q : ℕ) → m ≤ n → p ≤ q → m * p ≤ n * q
+*-mono-≤ m n p q m≤n p≤q = ≤-trans (*-mono-≤ˡ m n p m≤n) (*-mono-≤ʳ n p q p≤q)
 ```
 
 
@@ -650,7 +654,16 @@ Show that addition is monotonic with respect to strict inequality.
 As with inequality, some additional definitions may be required.
 
 ```agda
--- Your code goes here
++-mono-<ʳ : ∀ (n p q : ℕ) → p < q → n + p < n + q
++-mono-<ʳ zero p q p<q = p<q
++-mono-<ʳ (suc n) p q p<q = s<s (+-mono-<ʳ n p q p<q)
+
++-mono-<ˡ : ∀ (n m p : ℕ) → n < m → n + p < m + p
++-mono-<ˡ n m zero n<m rewrite +-comm n zero | +-comm m zero = n<m
++-mono-<ˡ n m (suc p) n<m rewrite +-comm n (suc p) | +-comm m (suc p) = s<s (+-mono-<ʳ p n m n<m)
+
++-mono-< : ∀ (m n p q : ℕ) → m < n → p < q → m + p < n + q
++-mono-< m n p q m<n p<q = <-trans (m + p) (n + p) (n + q) (+-mono-<ˡ m n p m<n) (+-mono-<ʳ n p q p<q)
 ```
 
 #### Exercise `≤→<, <→≤` (recommended) {#leq-iff-less}
@@ -658,7 +671,14 @@ As with inequality, some additional definitions may be required.
 Show that `suc m ≤ n` implies `m < n`, and conversely.
 
 ```agda
--- Your code goes here
+--- we know that (m+1 ≤ n) so we know (m-1 ≤ n-2) so we know (m-2 < n-2) so (m < n)
+≤→< : ∀ {m n : ℕ} → (suc m) ≤ n → m < n
+≤→< (s≤s z≤n) = z<s
+≤→< (s≤s (s≤s sm≤n)) = s<s ((≤→< (s≤s sm≤n)))
+
+<→≤ : ∀ {m n : ℕ} → m < n → (suc m) ≤ n
+<→≤ z<s = s≤s z≤n
+<→≤ (s<s m<n) = s≤s (<→≤ m<n)
 ```
 
 #### Exercise `<-trans-revisited` (practice) {#less-trans-revisited}
@@ -668,7 +688,13 @@ using the relation between strict inequality and inequality and
 the fact that inequality is transitive.
 
 ```agda
--- Your code goes here
+≤-upright : ∀ { p q : ℕ } → p ≤ q → p ≤ suc q
+≤-upright z≤n = z≤n
+≤-upright (s≤s p≤q) = s≤s (≤-upright p≤q)
+
+--- we know that suc r ≤ s and suc s ≤ t so then we also know that suc r ≤ suc s so suc r ≤ t so r<t
+<-trans-revisited : ∀ { r s t : ℕ } → r < s → s < t → r < t
+<-trans-revisited r<s s<t = ≤→< (≤-trans (≤-upright (<→≤ r<s)) (<→≤ s<t))
 ```
 
 
@@ -775,7 +801,9 @@ successor of the sum of two even numbers, which is even.
 Show that the sum of two odd numbers is even.
 
 ```agda
--- Your code goes here
+o+o≡e : ∀ {n m : ℕ} → odd n → odd m → even (n + m)
+o+o≡e (suc zero) m = suc m
+o+o≡e (suc (suc x)) m = suc (suc (o+o≡e x m))
 ```
 
 #### Exercise `Bin-predicates` (stretch) {#Bin-predicates}
@@ -835,7 +863,51 @@ properties of `One`. It may also help to prove the following:
     to (2 * n) ≡ (to n) O
 
 ```agda
--- Your code goes here
+data Bin : Set where
+  ⟨⟩ : Bin
+  _O : Bin → Bin
+  _I : Bin → Bin
+
+inc : Bin → Bin
+inc ⟨⟩ = ⟨⟩ I
+inc (b O) = b I
+inc (b I) = (inc b) O
+
+to : ℕ → Bin
+to 0 = ⟨⟩ O
+to (suc n) = inc (to n)
+
+from : Bin → ℕ
+from ⟨⟩ = 0
+from (b O) = 2 * (from b)
+from (b I) = 1 + (2 * (from b))
+
+data One : Bin → Set
+data Can : Bin → Set
+
+data One where
+   one : One (⟨⟩ I)   
+   addzero : ∀ {n : Bin} → One n → One (n O)
+   addone : ∀ {n : Bin} → One n → One (n I)
+
+data Can where
+   zero : Can (⟨⟩ O)
+   other : ∀ {n : Bin} → One n → Can n
+
+inc-preserve : ∀ {b : Bin} → Can b → Can (inc b)
+inc-preserve zero = other one
+inc-preserve (other one) = other (addzero one)
+inc-preserve (other (addzero x)) = other (addone x)
+inc-preserve (other (addone x)) = other (addzero (inc-one-to-one x))
+   where
+   inc-one-to-one : ∀ {b : Bin} → One b → One (inc b)
+   inc-one-to-one one = addzero one
+   inc-one-to-one (addzero b) = addone b
+   inc-one-to-one (addone b) = addzero (inc-one-to-one b)
+
+to-preserve : ∀ {n : ℕ} → Can (to n)
+to-preserve {zero} = zero
+to-preserve {suc n} = inc-preserve (to-preserve {n})
 ```
 
 ## Standard library
