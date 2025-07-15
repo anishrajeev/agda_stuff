@@ -1,6 +1,0 @@
-data 𝕊 {l} (A : Set l) : Set l where
-  empty : 𝕊
-  push : A → 𝕊 A → 𝕊 A
-
-pop : ∀ {l} {A : Set l} → 𝕊 A → maybe (A × 𝕊 A)
-pop stack = ?
