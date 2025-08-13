@@ -4,11 +4,20 @@ open import Data.Bool using (Bool; true; false; _∧_; if_then_else_)
 open import Data.Maybe using (Maybe; just; nothing)
 open import Data.Product using (Σ; _,_; proj₁; proj₂)
 
+open import Agda.Primitive using (Level; lzero; lsuc; _⊔_)
+open import Level using (Lift; lift)
+open import Relation.Binary.Bundles using (TotalOrder)
 
+open import Data.Nat
+open import Data.Vec using ([] ; _∷_ ; Vec; _++_; lookup)
+open import Data.Fin using (Fin; zero; suc)
+open import Data.Sum using (_⊎_ ; inj₁ ; inj₂)
 
 module bst (A : Set) (_≤A_ : A → A → Bool)
                      (trans≤A : ∀ {a b c : A} → a ≤A b ≡ true → b ≤A c ≡ true → a ≤A c ≡ true)
-                     (total≤A : ∀{a b : A} → a ≤A b ≡ false → b ≤A a ≡ true) where
+                     (total≤A : ∀{a b : A} → a ≤A b ≡ false → b ≤A a ≡ true)
+                     (antisym≤A : ∀{a b : A} → a ≤A b ≡ true → b ≤A a ≡ true → a ≡ b)
+                     where
 
 data bst : A → A → Set where
   leaf : ∀ {l u : A} → l ≤A u ≡ true → bst l u
@@ -96,3 +105,48 @@ search d (node n tree₁ tree₂ x₁ x₂) | true | true | [ eq₁ ] | [ eq₂ 
 search d (node n tree₁ tree₂ x₁ x₂) | true | false | [ eq₁ ] | [ eq₂ ] = search d tree₁
 search d (node n tree₁ tree₂ x₁ x₂) | false | true | [ eq₁ ] | [ eq₂ ] = search d tree₂
 search d (node n tree₁ tree₂ x₁ x₂) | false | false | [ eq₁ ] | [ eq₂ ] = nothing
+
+size : ∀ {l u : A} → (tree : bst l u) → ℕ
+size (leaf x) = 0
+size (node d tree tree₁ x x₁) = suc (size tree + size tree₁)
+
+preorderTraversal : ∀ {l u : A} → (tree : bst l u) → Vec A (size tree)
+preorderTraversal (leaf x) = []
+preorderTraversal (node d tree tree₁ x x₁) = d ∷ ((preorderTraversal tree) ++ (preorderTraversal tree₁))
+
+lookupA : ∀ {l u : A} → (tree : bst l u) → (x : Fin (size tree)) → A
+lookupA tree x = lookup (preorderTraversal tree) x
+
+lookupA-injective : ∀ {l u : A} {tree : bst l u} {x y : Fin (size tree)} → (lookupA tree x) ≡ (lookupA tree y) → x ≡ y
+lookupA-injective eq = {!!}
+
+totality-helper : ∀ {x y : A} → (x ≤A y ≡ true) ⊎ (y ≤A x ≡ true)
+totality-helper {x} {y} with (x ≤A y) | inspect (x ≤A_) y
+totality-helper | true | [ eq ] = inj₁ refl
+totality-helper | false | [ eq ] = inj₂ (total≤A eq)
+
+reflexive-helper : ∀ {l u : A} {tree : bst l u} {r s : Fin (size tree)} → r ≡ s → (lookupA tree r) ≡ (lookupA tree s)
+reflexive-helper eq rewrite eq = refl
+
+reflexive-helper-2 : ∀ {x y : A} → (eq : x ≡ y) → (x ≤A y) ≡ true
+reflexive-helper-2 {x} {y} eq with (x ≤A y) | inspect (x ≤A_) y
+reflexive-helper-2 {x} {y} eq | true | [ _ ] = refl
+reflexive-helper-2 {x} {y} eq | false | [ q ] rewrite (sym q) | eq = reflexive
+
+μ : ∀ {l u : A} → (tree : bst l u) → TotalOrder lzero lzero lzero
+μ {l} {u} tree = record
+              { Carrier = Fin (size tree)
+              ; _≈_ = _≡_
+              ; _≤_ = λ r s → ((lookupA (tree) r) ≤A (lookupA (tree) s)) ≡ true
+              ; isTotalOrder = record
+                                { isPartialOrder = record
+                                                    { isPreorder = record
+                                                                    { isEquivalence = isEquivalence
+                                                                    ; reflexive = λ {r} {s} r≈s → reflexive-helper-2 (reflexive-helper {l} {u} {tree} {r} {s} r≈s)
+                                                                    ; trans = λ {p} {q} {r} p≤q q≤r → trans≤A p≤q q≤r
+                                                                    }
+                                                    ; antisym = λ x≤y y≤x → lookupA-injective (antisym≤A x≤y y≤x)
+                                                    }
+                                ; total = λ x y → totality-helper {lookupA tree x} {lookupA tree y}
+                                }
+              }
