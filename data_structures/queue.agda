@@ -1,8 +1,11 @@
 module queue where
 
 open import Data.List using (List; []; _∷_; reverse)
-open import Data.Product using (_×_ ; _,_ ; proj₁ ; proj₂)
+open import Data.Product using (_×_ ; _,_ ; proj₁ ; proj₂ ; Σ)
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Data.Nat
+open import Data.Fin using (Fin; zero; suc)
+
 
 record queue (A : Set) : Set where
    field
@@ -30,3 +33,6 @@ dequeue record { front = (_ ∷ _) ; back = [] } | record { front = front' ; bac
 dequeue record { front = (_ ∷ _) ; back = [] } | record { front = front' ; back = x ∷ back } =
    record {front = front' ; back = back}
 dequeue record { front = front ; back = (x ∷ back) } = record { front = front ; back = back }
+
+μ : {A : Set} → (q : queue A) → Σ ℕ (λ n → (A → Fin n))
+μ q = {!!}

@@ -27,4 +27,6 @@ mutual
    differs-by-one : ℕ → ℕ → Bool
    differs-by-one x y = (eq x y) ∨ (eq (suc x) y) ∨ (eq x (suc y))
 
+
+
   

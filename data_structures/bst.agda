@@ -9,7 +9,8 @@ open import Level using (Lift; lift)
 open import Relation.Binary.Bundles using (TotalOrder)
 
 open import Data.Nat
-open import Data.Vec using ([] ; _∷_ ; Vec; _++_; lookup)
+open import Data.Vec.Base  using (Vec ; lookup) renaming ([] to []ᵥ; _∷_ to _∷ᵥ_ ; _++_ to _++ᵥ_)
+open import Data.List.Base using (List; []; _∷_ ; _++_)
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Sum using (_⊎_ ; inj₁ ; inj₂)
 
@@ -111,8 +112,8 @@ size (leaf x) = 0
 size (node d tree tree₁ x x₁) = suc (size tree + size tree₁)
 
 preorderTraversal : ∀ {l u : A} → (tree : bst l u) → Vec A (size tree)
-preorderTraversal (leaf x) = []
-preorderTraversal (node d tree tree₁ x x₁) = d ∷ ((preorderTraversal tree) ++ (preorderTraversal tree₁))
+preorderTraversal (leaf x) = []ᵥ
+preorderTraversal (node d tree tree₁ x x₁) = d ∷ᵥ ((preorderTraversal tree) ++ᵥ (preorderTraversal tree₁))
 
 lookupA : ∀ {l u : A} → (tree : bst l u) → (x : Fin (size tree)) → A
 lookupA tree x = lookup (preorderTraversal tree) x
@@ -133,8 +134,12 @@ reflexive-helper-2 {x} {y} eq with (x ≤A y) | inspect (x ≤A_) y
 reflexive-helper-2 {x} {y} eq | true | [ _ ] = refl
 reflexive-helper-2 {x} {y} eq | false | [ q ] rewrite (sym q) | eq = reflexive
 
-μ : ∀ {l u : A} → (tree : bst l u) → TotalOrder lzero lzero lzero
-μ {l} {u} tree = record
+μ : ∀ {l u : A} → (tree : bst l u) → List A
+μ (leaf x) = []
+μ (node d tree tree₁ x x₁) = d ∷ ((μ tree) ++ (μ tree₁))
+
+μ' : ∀ {l u : A} → (tree : bst l u) → TotalOrder lzero lzero lzero
+μ' {l} {u} tree = record
               { Carrier = Fin (size tree)
               ; _≈_ = _≡_
               ; _≤_ = λ r s → ((lookupA (tree) r) ≤A (lookupA (tree) s)) ≡ true
