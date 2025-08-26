@@ -18,12 +18,12 @@ empty {A} = record {front = [] ; back = []}
 enqueue : {A : Set} → (q : queue A) → (e : A) → queue A
 enqueue record { front = front ; back = back } e = record { front = e ∷ front ; back = back }
 
-shuffle-helper : {A : Set} → (front : List A) → (back : List A) → queue A
-shuffle-helper [] back = record { front = [] ; back = back }
+shuffle-helper : {A : Set} → (front : List A) → (back : List A) → List A
+shuffle-helper [] back = back
 shuffle-helper (x ∷ front) back = shuffle-helper front (x ∷ back)
 
 shuffle : {A : Set} → (q : queue A) → queue A
-shuffle q = shuffle-helper (queue.front q) (queue.back q)
+shuffle q = record { front = [] ; back = shuffle-helper (queue.front q) (queue.back q) }
 
 dequeue : {A : Set} → (q : queue A) → queue A
 dequeue record { front = [] ; back = [] } = record { front = [] ; back = [] }
@@ -34,5 +34,5 @@ dequeue record { front = (_ ∷ _) ; back = [] } | record { front = front' ; bac
    record {front = front' ; back = back}
 dequeue record { front = front ; back = (x ∷ back) } = record { front = front ; back = back }
 
-μ : {A : Set} → (q : queue A) → Σ ℕ (λ n → (A → Fin n))
-μ q = {!!}
+μ : {A : Set} → (q : queue A) → List A
+μ record { front = front ; back = back } = shuffle-helper front back
